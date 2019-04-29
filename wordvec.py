@@ -5,6 +5,7 @@ import jieba
 import numpy as np
 from gensim.models import Word2Vec 
 
+
 class SentimentAnalysisWord2vec:
     #初始化
     def __init__(self,stopword):
@@ -30,28 +31,36 @@ class SentimentAnalysisWord2vec:
         for sentence in sentences:
             #去除左边空格
             try:
-                sentenceWords = self._preDetail(sentence.lstrip())
+                sentenceWords = self.preDetail(sentence.lstrip())
                 self.__sentences.append(sentenceWords)
                 num = num + 1
             except:
                 pass
     
-    def setSentenceswithsplited(self,sentences):
+    def setSentencesExisted(self,sentences):
         self.__sentences = sentences
 
     #结巴分词
-    def _preDetail(self, sentence):
+    def preDetail(self, sentence, stopword = False):
         wordsList = jieba.cut(sentence, cut_all=False)
         sentenceWords = []
-        for w in wordsList:
-            if w not in self.__stopword:
+        if stopword:
+            for w in wordsList:
+                if w not in self.__stopword:
+                    sentenceWords.append(w)
+        else:
+            for w in wordsList:
                 sentenceWords.append(w)
         return sentenceWords
 
-    def newModel(self, size = 100):
-        # Create CBOW model
-        self.__model = Word2Vec(self.__sentences , min_count = 5, size = size, window = 5) 
-        self.__model.save(u'word2vec.model')
+    def newModel(self, size = 300, getFromFile = True):
+        if getFromFile:
+            #get the model which I have created
+            self.__model = self.getModel()
+        else:
+            # Create CBOW model
+            self.__model = Word2Vec(self.__sentences , min_count = 2, size = size, window = 5, negative = 15) 
+            self.__model.save(u'word2vec.model')
         return self.__model
 
     def getSentences(self):
@@ -62,9 +71,14 @@ class SentimentAnalysisWord2vec:
         return self.__model
 
     #将句子中的每一个词的vector合并并且取平均
-    def sentencesVector(self, numFecture = 300):
+    def sentencesVector(self, numFecture = 300, test = None):
+        if test == None:
+            sentences = self.__sentences
+        else:
+            sentences = test
+
         sentencesList = []
-        for sentence in self.__sentences:
+        for sentence in sentences:
             sentenceList = np.zeros((numFecture,),dtype="float")
             numWords = 0
             for word in sentence:
@@ -80,4 +94,4 @@ class SentimentAnalysisWord2vec:
         return np.array(sentencesList)
 
 def getSentimentAnalysisWord2vec():
-    return SentimentAnalysisWord2vec('情感分析字典/停用词.txt')
+    return SentimentAnalysisWord2vec('corpus/停用词.txt')

@@ -16,8 +16,8 @@ hotelComment = pd.read_csv(path + 'ChnSentiCorp_htl_all.csv')
 
 
 ###############################################################
-#感情打分
-##################################################################
+#感情打分/不使用
+###############################################################
 
 #初始化分析
 # s = sa.getAnalysis()
@@ -26,49 +26,82 @@ hotelComment = pd.read_csv(path + 'ChnSentiCorp_htl_all.csv')
 #     print(s.getSentence())
 #     print(s.getScore())
 
-################################################################
+###############################################################
+
+
+###############################################################
+#机器学习/深度学习
+###############################################################
+
 
 #Word2vec
 w = wv.getSentimentAnalysisWord2vec()
 
-#get corpus by file
+#get corpus from file
 with open('./corpus/corpus.txt', 'r') as f:
     if len(f.read()) == 0:
         #Word2vec
         w.setSentences(hotelComment["review"])
         sentences = w.getSentences()
-        sl.Write(sentences)
+        sl.Write(sentences, './corpus/corpus.txt')
     else:
-        sentences = sl.Read()
-        w.setSentenceswithsplited(sentences)
+        sentences = sl.Read('./corpus/corpus.txt')
+        w.setSentencesExisted(sentences)
 print("sentences created")
 
 #Create CBOW model
-#model = w.newModel(size = 300)
-
-#get the model which I have created
-model = w.getModel()
+model = w.newModel(size = 300, getFromFile = True)
 
 
 #print(len(model.wv.vectors))
-#print(model.wv.similarity('服务员', '皇冠'))
+#print(model.wv.similarity('酒店', '大堂'))
+#print(model.wv.most_similar('偏僻',topn = 10))
 
-#set all word with vector
-sentencesWithVector = w.sentencesVector(numFecture = 300)
+#get all word with vector
+with open('./corpus/sentencesWithVector.txt', 'r') as f:
+    if len(f.read()) == 0:
+        #set all word with vector
+        sentencesWithVector = w.sentencesVector(numFecture = 300)
+        sl.WriteInt(sentencesWithVector, './corpus/sentencesWithVector.txt')
+    else:
+        sentencesWithVector = sl.ReadInt('./corpus/sentencesWithVector.txt')
+print("sentencesWithVector seted")
+
 
 #print(sentencesWithVector.shape)
 
 #PCA 300 -> 100
 pca = PCA(n_components=100)
-reduced_model=pca.fit_transform(sentencesWithVector)
+reducedModel=pca.fit_transform(sentencesWithVector)
+print("PCA done")
 
-print(reduced_model.shape)
+# print(reducedModel.shape)
+# print(len(reducedModel))
+# print(len(hotelComment["label"]))
 
 
-print(len(reduced_model))
-print(len(hotelComment["label"]))
 #SVM
-SVM = sm.getSVMmodel(reduced_model, hotelComment["label"])
-SVM.classication()
-SVM.predict()
-print(SVM.f1score())
+SVM = sm.getSVMmodel(reducedModel, hotelComment["label"])
+
+#get from file
+#SVM.classication(getFromFile = True)
+
+# print("SVM classication done")
+# SVM.predictTestandTrain()
+# print("Test : " + str(SVM.f1scoreTest()))
+# print("Train : " + str(SVM.f1scoreTrain()))
+# print("accuracy : " + str(SVM.accuracyTest()))
+
+#cross validation
+SVM.classicationCrossValisdation()
+print("cross validation done")
+
+
+#随机输入测试
+testSentence = "这家酒店的环境十分糟糕，以后再也不来了"
+testSentenceWords = w.preDetail(testSentence)
+testSentencesWords = []
+testSentencesWords.append(testSentenceWords)
+testSentencesWithVector = w.sentencesVector(test = testSentencesWords)
+testReducedModel = pca.transform(testSentencesWithVector)
+print(testSentence + "result : "+ str(SVM.predictNewSentence(testReducedModel)))
